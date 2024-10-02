@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useReducer, useState } from "react";
 import TaskInput from "../TaskInput/TaskInput";
 import TaskList from "../TaskList/TaskList";
 import "./TodoList.css";
 import { Todo } from "../@types/todo.type";
+import reducer, { initTodos } from "../../reducer/reducer";
+import { Action } from "../../actions/action";
 
 //dua setState vao reducer
 //const tham so  = action type
 
-
 type HandleLocalStorage = (todos: Todo[]) => Todo[];
 export default function TodoList() {
   //dat danh sach task o cha de truyen xuong con
-  const [todos, setTodos] = useState<Todo[]>([]);
+  // const [todos, setTodos] = useState<Todo[]>([]);
+  const [todos, dispatch] = useReducer(reducer, initTodos);
   const doneTodos = todos.filter((todo) => todo.done);
   const notDoneTodos = todos.filter((todo) => !todo.done);
   const [currentTask, setCurrentTask] = useState<Todo | null>(null);
@@ -19,7 +21,8 @@ export default function TodoList() {
   useEffect(() => {
     const todos = localStorage.getItem("todos");
     const todosString: Todo[] = JSON.parse(todos || "[]");
-    setTodos(todosString);
+    // setTodos(todosString);-> thay bang dispatch
+    dispatch({ type: "SET_TODOS", payload: { todos: todosString } });
   }, []);
 
   //ham syncLocal nhan vao 1 ham co dang: function() hoac co dang ()=>{}
@@ -37,7 +40,7 @@ export default function TodoList() {
       done: false,
       id: new Date().toISOString(),
     };
-    setTodos((prev) => [todo, ...prev]);
+    dispatch({ type: "ADD_TODO", payload: { todo: todo } });
     syncLocal((todolists) => [todo, ...todolists]);
   };
 
@@ -47,49 +50,30 @@ export default function TodoList() {
     console.log(id);
   };
 
+  // const edit = (name: string) => {
+  //   setCurrentTask((prev) => {
+  //     if (prev) return { ...prev, name };
+  //     return null;
+  //   });
+  // };
   const edit = (name: string) => {
-    setCurrentTask((prev) => {
-      if (prev) return { ...prev, name };
-      return null;
-    });
-  };
-
-  const doneEdit = () => {
     if (currentTask) {
-      const handle = (todoObj: Todo[]) => {
-        return todoObj.map((item) => {
-          if (item.id === currentTask.id) {
-            return currentTask;
-          }
-          return item;
-        });
-      };
-      setTodos(handle);
+      dispatch({ type: "EDIT_TODO", payload: { id: currentTask.id, name } });
       setCurrentTask(null);
-      syncLocal(handle);
     }
   };
-
   const deleteTask = (id: string) => {
-    const index = todos.findIndex((todo) => todo.id === id);
-    const newTodos = [...todos];
-    newTodos.splice(index, 1);
-    setTodos(newTodos);
-    syncLocal(() => newTodos);
+    dispatch({ type: "DEL_TODO", payload: { id } });
+    syncLocal((todos) => todos.filter((todo) => todo.id !== id));
   };
 
   const tickTask = (id: string) => {
-    const handle = (todosObj: Todo[]) => {
-      return todosObj.map((todo) => {
-        if (todo.id === id) {
-          return { ...todo, done: !todo.done };
-        }
-        return todo;
-      });
-    };
-
-    setTodos(handle);
-    syncLocal(handle);
+    dispatch({ type: "TICK_TODO", payload: { id } });
+    syncLocal((todos) =>
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, done: !todo.done } : todo
+      )
+    );
   };
   return (
     <div className="main">
@@ -97,7 +81,6 @@ export default function TodoList() {
         addTodo={addTodo}
         currentTask={currentTask}
         edit={edit}
-        doneEdit={doneEdit}
       />
       <TaskList
         todos={notDoneTodos}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./TaskInput.css";
 import { Todo } from "../@types/todo.type";
 
@@ -6,35 +6,42 @@ interface TaskInputProps {
   addTodo: (name: string) => void;
   currentTask: Todo | null;
   edit: (name: string) => void;
-  doneEdit: () => void;
 }
 
 export default function TaskInput(props: TaskInputProps) {
-  const { addTodo, currentTask, edit, doneEdit } = props;
+  const { addTodo, currentTask, edit } = props;
   const [name, setName] = useState<string>("");
+
+  useEffect(() => {
+    if (currentTask) {
+      setName(currentTask.name); 
+    } else {
+      setName("");
+    }
+  }, [currentTask]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (currentTask) {
-      doneEdit();
+      edit(name); // Gọi edit khi nhấn submit
+      setName(""); // Reset ô nhập
     } else {
       addTodo(name);
-      setName("");
+      setName(""); // Reset ô nhập
     }
   };
-  //dat input la value = cái gì thì muosn thay đỏi phải gọi hàm setState cái đó,
-  //ví dụ name thì phải setName, value = currentTask thì phải gọi hàm state của currentTask
+
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (currentTask) edit(event.target.value);
-    else setName(event.target.value);
+    setName(event.target.value); // Chỉ cập nhật state name
   };
+
   return (
     <div className="">
       <div className="title">Title</div>
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          value={currentTask ? currentTask.name : name}
+          value={name} // Sử dụng state name
           placeholder="caption goes here"
           onChange={handleChange}
         />
